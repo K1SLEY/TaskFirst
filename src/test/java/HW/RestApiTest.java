@@ -269,13 +269,139 @@ class RestApiTest {
                 .body(Matchers.emptyString());
     }
 
+    @Test
+    public void getTopStudentWhenNoMarksReturnsEmpty() {
+        String body1 = """ 
+                      {
+                      "id": 4,
+                      "name" : "Anton",
+                      "marks" : []
+                      }
+                """;
+        String body2 = """ 
+                      {
+                      "id": 5,
+                      "name" : "Ivan",
+                      "marks" : null
+                      }
+                """;
+        RestAssured.given()
+                .contentType(ContentType.JSON)
+                .body(body1).
+                post("/student")
+                .then()
+                .statusCode(201);
+
+        RestAssured.given().
+                contentType(ContentType.JSON).
+                body(body2).
+                post("/student")
+                .then()
+                .statusCode(201);
+
+        RestAssured.given()
+                .when()
+                .get("/topStudent")
+                .then()
+                .statusCode(200)
+                .body(Matchers.emptyString());
+
+
+        RestAssured.given()
+                .when()
+                .delete("/student/4")
+                .then()
+                .statusCode(200);
+
+        RestAssured.given()
+                .when()
+                .delete("/student/5")
+                .then()
+                .statusCode(200);
+    }
+
+    @Test
+    public void getTopStudentSingleTop() {
+        String body1 = """ 
+                      {
+                      "id": 6,
+                      "name" : "goodBoy",
+                      "marks" : [5,5,5]
+                      }
+                """;
+        String body2 = """ 
+                      {
+                      "id": 7,
+                      "name" : "stupidBoy",
+                      "marks" : [3,3]
+                      }
+                """;
+        RestAssured.given().contentType(ContentType.JSON).body(body1).post("/student");
+        RestAssured.given().contentType(ContentType.JSON).body(body2).post("/student");
+
+        RestAssured.given()
+                .when()
+                .get("/topStudent")
+                .then()
+                .statusCode(200)
+                .body("[0].id", Matchers.equalTo(6))
+                .body("[0].name", Matchers.equalTo("goodBoy"))
+                .body("[0].marks", Matchers.hasItems(5, 5, 5));
+
+        RestAssured.given()
+                .when()
+                .delete("/student/6")
+                .then()
+                .statusCode(200);
+
+        RestAssured.given()
+                .when()
+                .delete("/student/7")
+                .then()
+                .statusCode(200);
+    }
+
+
+    @Test
+    public void getTopStudentMultipleTop() {
+        String body1 = """ 
+                      {
+                      "id": 8,
+                      "name" : "Anton",
+                      "marks" : [5,5,5]
+                      }
+                """;
+        String body2 = """ 
+                      {
+                      "id": 9,
+                      "name" : "Ivan",
+                      "marks" : [5,5,5]
+                      }
+                """;
+        RestAssured.given().contentType(ContentType.JSON).body(body1).post("/student");
+        RestAssured.given().contentType(ContentType.JSON).body(body2).post("/student");
+
+        RestAssured.given()
+                .when()
+                .get("/topStudent")
+                .then()
+                .statusCode(200)
+                .body("size()", Matchers.is(2))
+                .body("id", Matchers.containsInAnyOrder(8, 9))
+                .body("name", Matchers.containsInAnyOrder("Anton", "Ivan"));
+
+        RestAssured.given()
+                .when()
+                .delete("/student/8")
+                .then()
+                .statusCode(200);
+
+        RestAssured.given()
+                .when()
+                .delete("/student/9")
+                .then()
+                .statusCode(200);
+    }
 
 }
 
-
-/*
-get /topStudent код 200 и пустое тело, если студентов в базе нет.
-get /topStudent код 200 и пустое тело, если ни у кого из студентов в базе нет оценок.
-get /topStudent код 200 и один студент, если у него максимальная средняя оценка, либо же среди всех студентов с максимальной средней у него их больше всего.
-get /topStudent код 200 и несколько студентов, если у них всех эта оценка максимальная и при этом они равны по количеству оценок.
- */
